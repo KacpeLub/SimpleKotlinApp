@@ -1,5 +1,15 @@
 package com.example.simplekotlintodo
 
+
+Krok 4: Praca z GitHubem
+Teraz, kiedy twoje repozytorium jest skonfigurowane, możesz łatwo wersjonować zmiany:
+
+Dodawanie zmian: Po dokonaniu zmian w projekcie, użyj git add . aby dodać zmiany do staging area, a następnie git commit -m "Opis zmian" do zatwierdzenia.
+Wysyłanie zmian na GitHub: Użyj git push do wysłania zatwierdzonych zmian na serwer GitHub.
+Pobieranie najnowszych zmian: Jeśli pracujesz z innymi, git pull pozwoli ci pobrać najnowsze zmiany z GitHuba.
+
+
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent

@@ -1,28 +1,46 @@
 package com.example.simplekotlintodo
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
+
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.simplekotlintodo.data.TodoItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
-class TodoViewModel: ViewModel() {
-    var todos = mutableStateListOf<TodoItem>()
-        private set
-    //var showDialog = mutableStateOf(false)
+class TodoViewModel(context: Context) : ViewModel() {
+    // Tworzenie instancji repozytorium
+    private val repository: Repository = Repository(context)
 
+    // Pobieranie wszystkich zadań jako LiveData
+    val allTasks: Flow<List<TodoItem>> = repository.getAll()
 
-    fun toggleTaskDone(todoItem: TodoItem, isDone: Boolean) {
-        // Znajdź zadanie w liście i zaktualizuj jego stan
-        val taskIndex = todos.indexOfFirst { it.id == todoItem.id }
-        if (taskIndex != -1) {
-            todos[taskIndex] = todoItem.copy(isDone = isDone)
+    // Funkcja dodająca nowe zadanie
+    fun addTask(taskName: String, taskDescription: String, isDone: Boolean = false) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insert(TodoItem(taskName = taskName, taskDescription = taskDescription, isDone = isDone))
         }
     }
-    fun removeTask(todoItem: TodoItem) {
-        todos.remove(todoItem)
+
+    // Funkcja usuwająca zadanie
+    fun deleteTask(todoItem: TodoItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.delete(todoItem)
+        }
     }
-    fun addTask(taskName: String, taskDescription: String) {
-        val newTask = TodoItem(taskName = taskName, taskDescription = taskDescription)
-        todos.add(newTask)
-        //showDialog.value = false
+
+    // Funkcja aktualizująca zadanie
+    fun updateTask(todoItem: TodoItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.update(todoItem)
+        }
+    }
+
+    // Funkcja do "czyszczenia" całej bazy danych
+    fun dropDatabase() {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.dropDatabase()
+        }
     }
 }

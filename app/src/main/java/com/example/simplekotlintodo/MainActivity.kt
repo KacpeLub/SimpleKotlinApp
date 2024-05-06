@@ -1,12 +1,11 @@
 package com.example.simplekotlintodo
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,13 +16,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,61 +35,54 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.simplekotlintodo.data.TodoItem
+import androidx.compose.runtime.collectAsState
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            TodoApp()
+
+            TodoApp(todoViewModel = viewModel { TodoViewModel(application) })
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun TodoApp(todoViewModel: TodoViewModel = viewModel()){
+fun TodoApp(todoViewModel: TodoViewModel) {
+    // Przechwytywanie danych z ViewModel
+    val allTasks by todoViewModel.allTasks.collectAsState(initial = emptyList())
     var showDialog by remember { mutableStateOf(false) }
 
-    Surface (modifier = Modifier.fillMaxSize()){
-        Box {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (showDialog) {
-                    TaskDialog(
-                        onAddTask = { taskName, taskDescription ->
-                            todoViewModel.addTask(taskName, taskDescription)
-                            showDialog = false // Zamknij dialog po dodaniu zadania
-                        },
-                        onDismissRequest = { showDialog = false } // Zamknij dialog na żądanie
-                    )
-                }
-                LazyColumn(modifier = Modifier.padding(top = 16.dp)) {
-                    items(items = todoViewModel.todos) { todo ->
-                        TodoItemRow(
-                            todo,
-                            todoViewModel::toggleTaskDone,
-                            todoViewModel::removeTask
-                        )
-                    }
-                }
-            }
-            FloatingActionButton(
-                onClick = { showDialog = true }, // Pokaż okno dialogowe
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(10.dp)
-            ) {
+    // Layout aplikacji
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Todo List") }) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Task")
             }
         }
+    ) {
+        if (showDialog) {
+            TaskDialog(
+                todoViewModel,
+                onDismissRequest = { showDialog = false } // Zamknij dialog na żądanie
+            )
+        }
+
+        TodoList(tasks = allTasks, todoViewModel)
     }
 }
 
 @Composable
-fun TaskDialog(onAddTask: (String, String) -> Unit, onDismissRequest: () -> Unit) {
+fun TaskDialog(todoViewModel: TodoViewModel, onDismissRequest: () -> Unit) {
     var taskName by remember { mutableStateOf("") }
     var taskDescription by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = { onDismissRequest() },
+    AlertDialog(onDismissRequest = { onDismissRequest() },
         title = { Text("Add New Task") },
         text = {
             Column {
@@ -109,11 +102,12 @@ fun TaskDialog(onAddTask: (String, String) -> Unit, onDismissRequest: () -> Unit
             Button(
                 onClick = {
                     if (taskName.isNotEmpty()) {
-                        onAddTask(taskName, taskDescription)
+                    todoViewModel.addTask(taskName, taskDescription)
+                    onDismissRequest()
                     }
                 }
             ) {
-                Text("Add Task")
+            Text("Add Task")
             }
         },
         dismissButton = {
@@ -124,35 +118,45 @@ fun TaskDialog(onAddTask: (String, String) -> Unit, onDismissRequest: () -> Unit
     )
 }
 
+
 @Composable
-fun TodoItemRow(
-    todo: TodoItem,
-    onItemCheckedChange: (TodoItem, Boolean) -> Unit,
-    onDeleteItem: (TodoItem) -> Unit) {
+fun TodoList(tasks: List<TodoItem>, todoViewModel: TodoViewModel) {
+    Column(modifier = Modifier.padding(8.dp)) {
+        LazyColumn(modifier = Modifier.padding(8.dp)){
+            items(tasks) { task ->
+                TaskRow(task, todoViewModel)
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskRow(task: TodoItem, todoViewModel: TodoViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-    ){
+            .padding(8.dp)) {
+
         Column(modifier = Modifier
             .weight(1f)
             .padding(start = 8.dp)) {
+
             Text(
-                text = todo.taskName,
-                //style = MaterialTheme.typography.headlineLarge,
-                style = if (todo.isDone) TextStyle(textDecoration = TextDecoration.LineThrough) else TextStyle()
+                text = task.taskName,
+                style = if (task.isDone) TextStyle(textDecoration = TextDecoration.LineThrough) else TextStyle()
             )
-            Text(text = todo.taskDescription)
+            Text(text = task.taskDescription)
         }
+
         Checkbox(
-            checked = todo.isDone,
-            onCheckedChange = { isChecked ->
-                onItemCheckedChange(todo, isChecked)
-            }
-        )
-        IconButton(onClick = { onDeleteItem(todo) }) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete task")
+            checked = task.isDone,
+            onCheckedChange = {isChecked ->
+                todoViewModel.updateTask(task.copy(isDone = isChecked))
+            } )
+
+        IconButton(onClick = { todoViewModel.deleteTask(task) }) {
+            Icon(Icons.Filled.Delete, contentDescription = "Delete")
         }
     }
 }

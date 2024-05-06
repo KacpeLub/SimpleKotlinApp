@@ -1,0 +1,35 @@
+
+---Konfiguracja Git Bash---
+git config --global user.name "Twoje Imie"
+git config --global user.email "twój.email@example.com"
+
+---Tworzenie i używanie repozytorium Git---
+git clone https://github.com/nazwa_uzytkownika/nazwa_repozytorium.git   //pobieranie repo
+
+---Sprawdzanie statusu repozytorium---
+cd nazwa_repozytorium
+git status
+
+---Aktualizacja repozytorium lokalnego do wersji serwerowej---
+git pull
+
+---Po dokonaniu zmian w plikach, musisz dodać te zmiany do repozytorium ---
+git add .
+
+---dodaj konkretny plik---
+git add plik.txt
+
+---Zapisywanie zmian (Commit)---
+git commit -m "Opis zmian, które wprowadzasz"
+
+---Wysyłanie zmian na serwer (Push)---
+git push
+
+---Przejście na inną wersję (Checkout)---
+git checkout nazwa_brancha_lub_tag
+
+---Aktualizowanie do nowej wersji (do nowszej wersji (brancha), który jest dostępny na serwerze:)---
+git fetch
+git checkout nazwa_nowego_brancha
+
+
