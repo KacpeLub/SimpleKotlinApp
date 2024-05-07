@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simplekotlintodo.data.TodoItem
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 
 
 class MainActivity : ComponentActivity() {
@@ -56,34 +62,118 @@ fun TodoApp(todoViewModel: TodoViewModel) {
     // Przechwytywanie danych z ViewModel
     val allTasks by todoViewModel.allTasks.collectAsState(initial = emptyList())
     var showDialog by remember { mutableStateOf(false) }
+    var taskToEdit by remember { mutableStateOf<TodoItem?>(null) }
 
     // Layout aplikacji
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Todo List") }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "TASKS",
+                        modifier = Modifier.fillMaxWidth(), // Wypełnienie maksymalnej szerokości
+                        style = TextStyle(
+                            fontStyle = FontStyle.Italic, // Ustawienie tekstu na kursywę
+                            fontSize = 20.sp, // Możesz dostosować rozmiar czcionki
+                            textAlign = TextAlign.Center  // Wypośrodkowanie tekstu
+                        )
+                    )
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Task")
             }
         }
     ) {
+        TodoList(tasks = allTasks, todoViewModel, onTaskLongClick = { task ->
+            taskToEdit = task
+            showDialog = true
+        })
+
         if (showDialog) {
             TaskDialog(
                 todoViewModel,
-                onDismissRequest = { showDialog = false } // Zamknij dialog na żądanie
+                taskToEdit,
+                onDismissRequest = {
+                    showDialog = false
+                    taskToEdit = null // resetujemy edytowany obiekt po zamknięciu dialogu
+                } // Zamknij dialog na żądanie
             )
         }
-
-        TodoList(tasks = allTasks, todoViewModel)
     }
 }
 
 @Composable
-fun TaskDialog(todoViewModel: TodoViewModel, onDismissRequest: () -> Unit) {
-    var taskName by remember { mutableStateOf("") }
-    var taskDescription by remember { mutableStateOf("") }
+fun TodoList(tasks: List<TodoItem>, todoViewModel: TodoViewModel, onTaskLongClick: (TodoItem) -> Unit) {
+    Column(modifier = Modifier.padding(top = 45.dp, start = 5.dp, end = 5.dp, bottom = 5.dp)) {
+        LazyColumn(modifier = Modifier.padding(8.dp)){
+            items(tasks) { task ->
+                TaskRow(task, todoViewModel, onTaskLongClick)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TaskRow(task: TodoItem, todoViewModel: TodoViewModel, onTaskLongClick: (TodoItem) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ){
+        var isExpanded by remember { mutableStateOf(false) }
+
+        Column(modifier = Modifier
+            .weight(1f)
+            .padding(start = 8.dp)
+            .combinedClickable(
+                onClick = { isExpanded = !isExpanded }, // Możesz tutaj zdefiniować puste kliknięcie, jeśli nie chcesz żadnej akcji przy standardowym kliknięciu
+                onLongClick = { onTaskLongClick(task) } // Obsługa długiego kliknięcia
+            )
+        ){
+
+            Text(
+                text = task.taskName,
+                style = TextStyle(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    //color = Color.Blue, // zmiana koloru czcionki
+                    letterSpacing = 0.5.sp, // odstęp między literami
+                    lineHeight = 24.sp, // wysokość linii
+                    textDecoration = if (task.isDone) TextDecoration.LineThrough else TextDecoration.None)
+            )
+            Text(
+                text = task.taskDescription,
+                style = TextStyle(fontSize = 14.sp),
+                modifier = Modifier.padding(all = 4.dp),
+                maxLines = if(isExpanded) Int.MAX_VALUE else 1
+            )
+        }
+
+        Checkbox(
+            checked = task.isDone,
+            onCheckedChange = {isChecked ->
+                todoViewModel.updateTask(task.copy(isDone = isChecked))
+            } )
+
+        IconButton(onClick = { todoViewModel.deleteTask(task) }) {
+            Icon(Icons.Filled.Delete, contentDescription = "Delete")
+        }
+    }
+}
+
+@Composable
+fun TaskDialog(todoViewModel: TodoViewModel, taskToEdit: TodoItem? = null, onDismissRequest: () -> Unit) {
+    var taskName by remember(taskToEdit) { mutableStateOf(taskToEdit?.taskName ?: "") }
+    var taskDescription by remember(taskToEdit) { mutableStateOf(taskToEdit?.taskDescription ?: "") }
+    val isNewTask = taskToEdit == null
 
     AlertDialog(onDismissRequest = { onDismissRequest() },
-        title = { Text("Add New Task") },
+        title = { Text(if (isNewTask) "Add New Task" else "Edit Task") },
         text = {
             Column {
                 TextField(
@@ -102,12 +192,16 @@ fun TaskDialog(todoViewModel: TodoViewModel, onDismissRequest: () -> Unit) {
             Button(
                 onClick = {
                     if (taskName.isNotEmpty()) {
-                    todoViewModel.addTask(taskName, taskDescription)
-                    onDismissRequest()
+                        if (isNewTask) {
+                            todoViewModel.addTask(taskName, taskDescription)
+                        } else {
+                            todoViewModel.updateTask(taskToEdit!!.copy(taskName = taskName, taskDescription = taskDescription))
+                        }
+                        onDismissRequest()
                     }
                 }
             ) {
-            Text("Add Task")
+                Text(if (isNewTask) "Add Task" else "Save Changes")
             }
         },
         dismissButton = {
@@ -119,47 +213,9 @@ fun TaskDialog(todoViewModel: TodoViewModel, onDismissRequest: () -> Unit) {
 }
 
 
-@Composable
-fun TodoList(tasks: List<TodoItem>, todoViewModel: TodoViewModel) {
-    Column(modifier = Modifier.padding(8.dp)) {
-        LazyColumn(modifier = Modifier.padding(8.dp)){
-            items(tasks) { task ->
-                TaskRow(task, todoViewModel)
-            }
-        }
-    }
-}
 
-@Composable
-fun TaskRow(task: TodoItem, todoViewModel: TodoViewModel) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)) {
 
-        Column(modifier = Modifier
-            .weight(1f)
-            .padding(start = 8.dp)) {
 
-            Text(
-                text = task.taskName,
-                style = if (task.isDone) TextStyle(textDecoration = TextDecoration.LineThrough) else TextStyle()
-            )
-            Text(text = task.taskDescription)
-        }
-
-        Checkbox(
-            checked = task.isDone,
-            onCheckedChange = {isChecked ->
-                todoViewModel.updateTask(task.copy(isDone = isChecked))
-            } )
-
-        IconButton(onClick = { todoViewModel.deleteTask(task) }) {
-            Icon(Icons.Filled.Delete, contentDescription = "Delete")
-        }
-    }
-}
 
 
 

@@ -1,0 +1,22 @@
+1. Poprawa zarządzania stanem dialogu
+Twoje podejście do zarządzania stanem dialogu jest już dobre, ale zawsze warto pamiętać o uproszczeniu logiki gdzie tylko to możliwe. Możesz rozważyć użycie dedykowanego ViewModel do zarządzania stanami interfejsu użytkownika, ale obecna metoda jest adekwatna dla skali twojego projektu.
+
+2. Ulepszenia UX/UI
+Rozważ dodanie więcej wizualnych sprzężeń zwrotnych i animacji, które mogą ulepszyć doświadczenie użytkownika. Na przykład, animacje przy dodawaniu i usuwaniu elementów z listy mogą uczynić interakcje bardziej płynnymi.
+
+3. Optymalizacja aktualizacji stanu
+Aktualnie, każda zmiana w stanie zadania (np. zaznaczenie jako wykonane, czy usunięcie) powoduje zapis do bazy danych na głównym wątku operacji wejścia/wyjścia (Dispatchers.IO). To jest dobre praktyki, ale upewnij się, że operacje te są efektywnie batchowane lub debounced, aby unikać nadmiernych zapisów dla każdej malej zmiany.
+
+4. Walidacja danych wejściowych
+W Twoim dialogu dodawania nowych zadań, warto dodać walidację danych wejściowych, aby upewnić się, że użytkownik wprowadził wszystkie niezbędne informacje przed próbą zapisu zadania.
+
+5. Obsługa błędów i loading states
+Obecnie nie masz w kodzie obsługi stanów ładowania ani błędów. Warto rozważyć dodanie UI, który informuje użytkownika, że dane są ładowane lub wystąpił błąd podczas operacji z bazą danych.
+
+6. Dostosowanie do różnych rozdzielczości ekranu
+Upewnij się, że twój UI jest responsywny i dobrze wygląda na różnych urządzeniach i orientacjach ekranu. Możesz to osiągnąć przez odpowiednie użycie Modifier.fillMaxWidth(), padding, i innych modifikatorów layout.
+
+7. Dokumentacja i komentarze
+Dodanie komentarzy i dokumentacji do Twojego kodu jest zawsze dobrym nawykiem, szczególnie w miejscach, gdzie logika może być niejasna dla nowej osoby przeglądającej kod.
+
+Twoje podejście do architektury aplikacji jest solidne, szczególnie używanie Repository i ViewModel do oddzielenia logiki biznesowej od UI. Pamiętaj, aby regularnie aktualizować zależności i śledzić zmiany w Jetpack Compose oraz innych używanych bibliotekach.

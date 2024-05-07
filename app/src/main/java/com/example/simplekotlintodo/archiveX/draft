@@ -1,0 +1,82 @@
+draft@Composable
+     fun TaskDialog(todoViewModel: TodoViewModel, taskToEdit: TodoItem?, onDismissRequest: () -> Unit) {
+         var taskName by remember(taskToEdit) { mutableStateOf(taskToEdit?.taskName ?: "") }
+         var taskDescription by remember(taskToEdit) { mutableStateOf(taskToEdit?.taskDescription ?: "") }
+
+         AlertDialog(onDismissRequest = { onDismissRequest() },
+             title = { Text("Edit Task") },
+             text = {
+                 Column {
+                     TextField(
+                         value = taskName,
+                         onValueChange = { taskName = it },
+                         label = { Text("Task Name") }
+                     )
+                     TextField(
+                         value = taskDescription,
+                         onValueChange = { taskDescription = it },
+                         label = { Text("Task Description") }
+                     )
+                 }
+             },
+             confirmButton = {
+                 Button(
+                     onClick = {
+                         if (taskName.isNotEmpty()) {
+                             todoViewModel.updateTask(taskToEdit!!.copy(taskName = taskName, taskDescription = taskDescription))
+                             onDismissRequest()
+                         }
+                     }
+                 ) {
+                     Text("Save Changes")
+                 }
+             },
+             dismissButton = {
+                 Button(onClick = { onDismissRequest() }) {
+                     Text("Cancel")
+                 }
+             }
+         )
+     }
+
+
+     @Composable
+     fun TaskDialog(todoViewModel: TodoViewModel, onDismissRequest: () -> Unit) {
+         var taskName by remember { mutableStateOf("") }
+         var taskDescription by remember { mutableStateOf("") }
+
+         AlertDialog(onDismissRequest = { onDismissRequest() },
+             title = { Text("Add New Task") },
+             text = {
+                 Column {
+                     TextField(
+                         value = taskName,
+                         onValueChange = { taskName = it },
+                         label = { Text("Task Name") }
+                     )
+                     TextField(
+                         value = taskDescription,
+                         onValueChange = { taskDescription = it },
+                         label = { Text("Task Description") }
+                     )
+                 }
+             },
+             confirmButton = {
+                 Button(
+                     onClick = {
+                         if (taskName.isNotEmpty()) {
+                             todoViewModel.addTask(taskName, taskDescription)
+                             onDismissRequest()
+                         }
+                     }
+                 ) {
+                     Text("Add Task")
+                 }
+             },
+             dismissButton = {
+                 Button(onClick = { onDismissRequest() }) {
+                     Text("Cancel")
+                 }
+             }
+         )
+     }
